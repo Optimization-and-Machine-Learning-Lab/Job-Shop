@@ -16,7 +16,6 @@ from config import read_args
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device: ", device)
 
-
 # Arguments 
 args = read_args()
 testsize = 1000
