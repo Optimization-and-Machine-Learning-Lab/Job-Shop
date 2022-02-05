@@ -25,7 +25,7 @@ ops = macs
 maxTime = args['maxTime']
 
 
-# Load testing dataset
+# Load testing dataset:
 testdata = torch.load('./data/JS_test_%d_%dx%d_t%d.tar'%(testsize,jobs,macs,maxTime))
 test_precedence = testdata['precedence']
 test_timepre = testdata['time_pre']/float(maxTime)
