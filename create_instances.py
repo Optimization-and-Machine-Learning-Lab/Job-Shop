@@ -5,8 +5,8 @@ import torch
 
 testsize = 1000
 
-jobs = 100
-macs = 20
+jobs = 10
+macs = 10
 ops = macs
 maxTime = 100
 precedence = []

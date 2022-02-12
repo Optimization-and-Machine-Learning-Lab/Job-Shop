@@ -19,9 +19,9 @@
             "console": "integratedTerminal",
             "args": [
                 "-j",
-                "10",
+                "6",
                 "-m",
-                "10",
+                "6",
                 "-t",
                 "100"
             ]

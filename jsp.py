@@ -31,8 +31,6 @@ test_precedence = testdata['precedence']
 test_timepre = testdata['time_pre']/float(maxTime)
 testSample = [i for i in range(testsize)]
 
-
-
 import contextlib
 @contextlib.contextmanager
 def temp_seed(seed):
@@ -52,12 +50,16 @@ masking = 1
 Episode = 45000 # total number of episodes
 
 # Training 
+size_agnostic=False
 resume_run=False
 Seed = [0]
 Batch = [100]
 Mask = [1]
 
 filedir = './Results/%dx%d/'%(jobs,macs)
+
+if size_agnostic:
+    filedir = './Results/size_agnostic/'
 
 
 # Learning loop...
@@ -67,6 +69,9 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
     torch.manual_seed(seed)
     
     model_name = 'A2C_Seed%d_BS%d_Mask%d.tar'%(seed,BS,masking)
+
+    if size_agnostic:
+        model_name = 'A2C_Seed_time_agnostic.tar'
     
     JS_best = OrderedDict()
     JS_result = OrderedDict()

@@ -19,7 +19,8 @@ class StateLSTM(nn.Module):
         self.device = device
         
         # instance representation layers
-        self.machinesEmbedding = nn.Linear(self.embeddedDim,self.macs+1,bias = False)
+        # self.machinesEmbedding = nn.Linear(self.embeddedDim,self.macs+1,bias = False)
+        self.machinesEmbedding = nn.Linear(1, self.embeddedDim) # size agnostic
         self.jobTimeEmbedding = nn.Linear(1, self.embeddedDim)
 #         self.jobTimeEmbedding2 = nn.Linear(self.embeddedDim, self.embeddedDim) # redundant?
         self.sequenceLSTM = nn.LSTM(2*self.embeddedDim, self.embeddedDim, batch_first=True) # set batch size as 1st Dim
@@ -59,7 +60,9 @@ class StateLSTM(nn.Module):
 #         Job_times = self.jobTimeEmbedding2(self.activation(self.jobTimeEmbedding(Job_times.unsqueeze(3))))
         Job_times = self.jobTimeEmbedding(Job_times.unsqueeze(3))
         # embedding precedence 
-        Precedences = self.machinesEmbedding.weight[[Precedences]] 
+        # Precedences = self.machinesEmbedding.weight[[Precedences]] 
+        Precedences_float = Precedences.unsqueeze(3).to(dtype=torch.float64)
+        Precedences = self.machinesEmbedding(Precedences_float) # Zangir size agnostic
         # concat embeded precedence and job time - input has to be a 3D tensor: batch, seq, feature
         PrecedenceTime =torch.cat((Precedences,Job_times),dim=3).reshape(BS*self.jobs,self.ops+1,-1) 
         
