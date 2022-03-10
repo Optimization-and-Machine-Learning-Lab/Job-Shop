@@ -65,8 +65,10 @@ if resume_run:
     actor_opt.load_state_dict(checkpoint['actor_opt_state_dict'])
     critic_opt.load_state_dict(checkpoint['critic_opt_state_dict'])
 
-
 for epi in range(10000):
+
+    if epi%10==1 or epi==0:
+        epi_st = time.time()
 
     test_venv.reset(testSamples)
 
@@ -101,8 +103,10 @@ for epi in range(10000):
     actor_opt.step()
     critic_opt.step()
 
-    #
     if epi % 10 == 0:
-        print('epi: %d, al: %.2e, cl: %.2e, trSpan: %.4f, trEntropy: %.2f' \
-              % (epi, actor_loss.data.item(), critic_loss.data.item(), np.mean(total_reward), tr_entropy))
+
+        epi_et = time.time()
+        
+        print('epi: %d, al: %.2e, cl: %.2e, trSpan: %.4f, trEntropy: %.2f, time: %.2f' \
+              % (epi, actor_loss.data.item(), critic_loss.data.item(), np.mean(total_reward), tr_entropy, epi_et-epi_st))
 
