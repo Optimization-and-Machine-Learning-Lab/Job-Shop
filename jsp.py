@@ -1,10 +1,9 @@
+import os
 import time
 import numpy as np
 import itertools
-from collections import OrderedDict
 import torch
 from torch import optim
-import torch.nn.functional as F
 
 from Envs.JobShopMultiGymEnv import *
 from Models.StateLSTM_test import *
@@ -45,44 +44,34 @@ Seed = [0]
 Batch = [128]
 Mask = [1]
 
-filedir = './Results/%dx%d/'%(jobs,macs)
 
+# Create filedir
 if size_agnostic:
-    filedir = './Results/size_agnostic/'
+    filedir = './Results/size_agnostic/%dx%d/'%(jobs,macs)
+else:
+    filedir = './Results/%dx%d/'%(jobs,macs)
+    
+if not os.path.exists(filedir): 
+    os.makedirs(filedir)
 
 
 # Learning loop...
 for seed,BS,masking in itertools.product(Seed,Batch,Mask):
     
+    print ('Seed: %d, Batch-Size: %d, Invalid-action-masking: %d' %(seed,BS,masking))
+
     # Set seed
     set_all_seeds(seed)
-    
-    model_name = 'A2C_Seed%d_BS%d_Mask%d.tar'%(seed,BS,masking)
 
-    if size_agnostic:
-        model_name = 'A2C_Seed_time_agnostic.tar'
-    
-    JS_best = OrderedDict()
-    JS_result = OrderedDict()
-    
+    # Set model name
+    model_name = 'A2C_Seed%d_BS%d_Mask%d.tar'%(seed,BS,masking)
+        
     # Instanitate actor-critic
     actor = Actor(embeddim,jobs,ops,macs,device).to(device)
     critic = Critic6(embeddim,jobs,ops,macs,device).to(device)
-    
-    # Environment test
-    test_venv = JobShopMultiGymEnv(testsize,jobs,ops,macs)
-    test_venv.setGame(test_precedence,test_timepre)
-    testSamples = [i for i in range(testsize)]
-    test_venv.reset(testSamples)
-
-
-    
-    # Environment training
-    train_venv = JobShopMultiGymEnv(BS,jobs,ops,macs) #put on top - reduce time
-    
     actor_opt = optim.Adam(actor.parameters(), lr=actorLR)
     critic_opt = optim.Adam(critic.parameters(), lr=criticLR)
-
+    
     if resume_run:
         try:
             checkpoint = torch.load(filedir+model_name, map_location=device)
@@ -93,25 +82,22 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
         except:
             print("Something went wrong when opening the file.")
 
+    # Environment test
+    test_venv = JobShopMultiGymEnv(testsize,jobs,ops,macs)
+    test_venv.setGame(test_precedence,test_timepre)
+    testSamples = [i for i in range(testsize)]
+    test_venv.reset(testSamples)
+
     # Instantiate rollouts
     test_rollout = Rollout(test_venv,actor,critic,device,masking)
-    
+
+    # Environment training
+    train_venv = JobShopMultiGymEnv(BS,jobs,ops,macs)
 
     # Start training from the begining                        
-    
-    StoppedEpi = 0
-    valReward = []
-    TeReward = []
     tr_numstep = 0
-
-    steps_list = []
-    
-    print ('Seed: %d, Batch-Size: %d, Invalid-action-masking: %d' %(seed,BS,masking))
-
     epi_start = 0
     epi_end = Episode+1
-    start_step = ops
-    step_ite = 0
     
     for epi in range(epi_start,epi_end):
         
@@ -119,11 +105,11 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
         Advantage = []
         total_reward = np.zeros(BS)
         
+        # Tic...
         if epi%100==1 or epi==0:
             epi_st = time.time()
 
         # Generate random mini-batch
-        #with temp_seed((testsize+epi+1)*(seed+1)):
         precedence = ([[np.random.choice(ops,ops,replace=False).tolist() for i in range(jobs)] for j in range(BS)])
         time_pre = np.random.randint(1,maxTime,size=(BS,jobs,ops))/float(maxTime)
 
@@ -132,9 +118,6 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
         trainSample = [i for i in range(BS)]
         train_venv.reset(trainSample)   
 
-        step_ite += 1
-
-
         # Rollout
         train_rollout = Rollout(train_venv,actor,critic,device,masking)
         ite,total_reward,States,Log_Prob,Prob,Action,Value,tr_reward, tr_entropy = train_rollout.play(BS,trainSample)
@@ -142,7 +125,7 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
 
         Log_Prob = torch.stack(Log_Prob)
 
-        # !!!!!!!!!!Compute Advantage: Qvalue - Value
+        #Compute Advantage: Qvalue - Value
         tr_reward.reverse()
 
         Qvalue = np.zeros((ite,BS))
@@ -152,7 +135,6 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
             Qvalue[ite-i-1] = q
 
         Advantage = torch.tensor(Qvalue,device=device) - torch.stack(Value)         #advantage.shape=[ite,BS]
-
 
         # Zero grad
         actor.zero_grad()
@@ -171,18 +153,15 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
 
         # Test
         if epi%100 == 0:         
-
             #Test rollout
             test_venv.reset(testSamples)
 
             te_ite,te_total_reward,te_States,te_Log_Prob,te_Prob,te_Action,te_Value,te_reward, te_entropy\
             = test_rollout.play(testsize,testSamples,False)
-
-            TeReward.append(np.mean(te_total_reward))
             
             # ...toc
             epi_et = time.time()
-            
+    
             print('epi: %d, al: %.2e, cl: %.2e, trSpan: %.4f, trEntropy: %.2f, teSpan: %.4f, tr_step: %d, time: %.2f'\
                    %(epi,actor_loss.data.item(),critic_loss.data.item(), np.mean(total_reward), tr_entropy, np.mean(te_total_reward),tr_numstep,epi_et-epi_st))
             
