@@ -12,7 +12,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "jsp",
+            "name": "train",
             "type": "python",
             "request": "launch",
             "program": "jsp.py",

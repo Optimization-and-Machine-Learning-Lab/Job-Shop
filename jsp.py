@@ -1,20 +1,20 @@
 import time
 import numpy as np
+import itertools
+from collections import OrderedDict
 import torch
 from torch import optim
 import torch.nn.functional as F
-from torch.distributions.categorical import Categorical
-
-import itertools
-from collections import OrderedDict
 
 from Envs.JobShopMultiGymEnv import *
 from Models.StateLSTM_test import *
 from Models.actorcritic import *
-from config import read_args
+from config import *
+from utils import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device: ", device)
+
 
 # Arguments 
 args = read_args()
@@ -31,17 +31,6 @@ test_precedence = testdata['precedence']
 test_timepre = testdata['time_pre']/float(maxTime)
 testSample = [i for i in range(testsize)]
 
-import contextlib
-@contextlib.contextmanager
-def temp_seed(seed):
-    state = np.random.get_state()
-    np.random.seed(seed)
-    try:
-        yield
-    finally:
-        np.random.set_state(state)
-
-
 # Hyperparameters
 embeddim = 128
 actorLR = 1e-4
@@ -50,10 +39,10 @@ masking = 1
 Episode = 45000 # total number of episodes
 
 # Training 
-size_agnostic=False
+size_agnostic=True
 resume_run=False
 Seed = [0]
-Batch = [100]
+Batch = [128]
 Mask = [1]
 
 filedir = './Results/%dx%d/'%(jobs,macs)
@@ -64,9 +53,9 @@ if size_agnostic:
 
 # Learning loop...
 for seed,BS,masking in itertools.product(Seed,Batch,Mask):
-        
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    
+    # Set seed
+    set_all_seeds(seed)
     
     model_name = 'A2C_Seed%d_BS%d_Mask%d.tar'%(seed,BS,masking)
 
@@ -134,9 +123,9 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
             epi_st = time.time()
 
         # Generate random mini-batch
-        with temp_seed((testsize+epi+1)*(seed+1)):
-            precedence = ([[np.random.choice(ops,ops,replace=False).tolist() for i in range(jobs)] for j in range(BS)])
-            time_pre = np.random.randint(1,maxTime,size=(BS,jobs,ops))/float(maxTime)
+        #with temp_seed((testsize+epi+1)*(seed+1)):
+        precedence = ([[np.random.choice(ops,ops,replace=False).tolist() for i in range(jobs)] for j in range(BS)])
+        time_pre = np.random.randint(1,maxTime,size=(BS,jobs,ops))/float(maxTime)
 
         # Create training virtual environment    
         train_venv.setGame(precedence,time_pre)
@@ -180,8 +169,7 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
         actor_opt.step()
         critic_opt.step()
 
-        
-        # 
+        # Test
         if epi%100 == 0:         
 
             #Test rollout
