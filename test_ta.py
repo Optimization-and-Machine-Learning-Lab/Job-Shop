@@ -1,3 +1,4 @@
+from pickle import TRUE
 from Envs.JobShopMultiGymEnv import *
 from utils import *
 from Models.actorcritic import *
@@ -20,8 +21,7 @@ macs = ops
 maxTime = 100
 i = 0
 size_agnostic = True
-resume_run = False
-
+resume_run = True
 seed = 0
 BS = 128
 masking = 1
@@ -41,11 +41,11 @@ test_venv = JobShopMultiGymEnv(BS, jobs, ops, macs)
 test_venv.setGame(test_precedence, test_timepre)
 testSamples = [i for i in range(BS)]
 
+filedir = './Results/%dx%d/' % (jobs, macs)
 if size_agnostic:
     filedir = './Results/size_agnostic/'
 
 model_name = 'A2C_Seed%d_BS%d_Mask%d.tar' % (seed, BS, masking)
-
 if size_agnostic:
     model_name = '%d_%d_100.tar' % (jobs, macs)
 
@@ -57,9 +57,6 @@ critic = Critic6(embeddim, jobs, ops, macs, device).to(device)
 
 actor_opt = optim.Adam(actor.parameters(), lr=actorLR)
 critic_opt = optim.Adam(critic.parameters(), lr=criticLR)
-
-filedir = './Results/%dx%d/' % (jobs, macs)
-model_name = 'A2C_Seed%d_BS%d_Mask%d.tar' % (seed, BS, masking)
 
 if resume_run:
     checkpoint = torch.load(filedir + model_name, map_location=device)
