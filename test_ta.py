@@ -47,7 +47,7 @@ if size_agnostic:
 
 model_name = 'A2C_Seed%d_BS%d_Mask%d.tar' % (seed, BS, masking)
 if size_agnostic:
-    model_name = '%d_%d_100.tar' % (jobs, macs)
+    model_name = '6_6_100.tar'
 
 # Instanitate actor-critic
 actor = Actor(embeddim, jobs, ops, macs, device).to(device)
