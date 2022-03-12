@@ -14,6 +14,9 @@ class Set2Set(torch.nn.Module):
         self.lstm = torch.nn.LSTM(self.out_channels, self.in_channels,
                                   num_layers)
 
+        self.mlp = torch.nn.Linear(3 * in_channels, in_channels)
+        self.mlp_activation = F.leaky_relu
+
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -45,9 +48,9 @@ class Set2Set(torch.nn.Module):
 
         q_star = q_star.unsqueeze(1).repeat(1, job_size, 1)
         q_star = torch.cat((x, q_star),dim=2)
-        # q_star Batch_size, 6 * embeddim
-        # cat x with q_star to get, Batch_size, Job_size, 9 * embeddim
-        # MLP 9 -> 3
+        
+        q_star = self.mlp(q_star)
+        q_star = self.mlp_activation(q_star)
 
         return q_star
 
