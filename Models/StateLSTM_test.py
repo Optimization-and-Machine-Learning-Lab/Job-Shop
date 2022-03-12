@@ -8,6 +8,7 @@ from torch import optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
+from Models.Set2Set_test import Set2Set
 
 class StateLSTM(nn.Module):
     def __init__(self, _embeddedDim, _jobs, _ops, _macs, device='cuda:0'):
@@ -17,7 +18,7 @@ class StateLSTM(nn.Module):
         self.ops = _ops
         self.macs = _macs
         self.device = device
-        
+
         # instance representation layers
         # self.machinesEmbedding = nn.Linear(self.embeddedDim,self.macs+1,bias = False)
         self.machinesEmbedding = nn.Linear(1, self.embeddedDim) # size agnostic
@@ -31,6 +32,9 @@ class StateLSTM(nn.Module):
         
         # activation function
         self.activation = F.leaky_relu
+
+        # Set2Set function to get inter Job Embeddings
+        self.interJobEmbedding = Set2Set(3*self.embeddedDim, 1, 1)
         
     def numel(self):
         
@@ -69,7 +73,7 @@ class StateLSTM(nn.Module):
         # LSTM embedding 
         JobEmbeddings,_ = self.sequenceLSTM(torch.flip(PrecedenceTime,[1])) # did a flip for reverse sequence
         JobEmbeddings = JobEmbeddings.reshape(BS,self.jobs,self.ops+1,-1) # shape - BS, num_jobs, num_ops+1, embed_dim
-     
+
         return JobEmbeddings
     
     def dynamicEmbedding(self,State,JobEmbeddings):
@@ -109,5 +113,7 @@ class StateLSTM(nn.Module):
         Machine_utilization = Machine_utilization[BSID,MacID,:]
         
         stateEmbeded = torch.cat((JobEmbeddings,Machine_utilization,Job_early_start_time),dim=2)
+
+        stateEmbeded = self.interJobEmbedding(stateEmbeded)
                                    
         return stateEmbeded
