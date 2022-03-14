@@ -29,7 +29,7 @@ for i in range(0,1):
 
     
     print('dmu{}'.format(i+1))
-    test_precedence,test_timepre_ = read_instances('./data/dmu/dmu{}'.format(i+1))
+    test_precedence,test_timepre_ = read_instances('./data/dmu/dmu{}.txt'.format(i+1))
     test_timepre = test_timepre_ / maxTime
     test_venv = JobShopMultiGymEnv(testsize,jobs,ops,macs)
     test_venv.setGame(test_precedence,test_timepre)
