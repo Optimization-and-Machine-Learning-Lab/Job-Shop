@@ -33,6 +33,8 @@ class Rollout:
             job_time = np.array([i['job_times'] for i in self.venv.BState])                 # Duration matrix
             job_early = np.array([i['job_early_start_time'] for i in self.venv.BState])
             job_state = np.array(self.venv.BSjobstate)
+            machine_state = np.array(self.venv.BSmachinestate)
+            makespan = np.array(self.venv.BSmaxSpan)
             pre = np.array([i['precedence'] for i in self.venv.BState])                     # Machine matrix
 
             State = {
@@ -40,7 +42,9 @@ class Rollout:
                 'job_times': job_time,
                 'job_early_start_time': job_early,
                 'precedence': pre,
-                'job_state': job_state
+                'job_state': job_state,
+                'machine_state': machine_state,
+                'makespan': makespan
             }
 
             States.append(State)
@@ -55,7 +59,12 @@ class Rollout:
                 value = self.critic(State,criticJobEmb)
 
             m = Categorical(prob)
-            action = m.sample().unsqueeze(1).cpu().numpy().tolist()
+
+            if training:
+                action = m.sample().unsqueeze(1).cpu().numpy().tolist()
+            else:
+                action = torch.argmax(m.probs, dim=1).unsqueeze(1).cpu().numpy().tolist()
+                
             entropy = m.entropy().cpu().detach().numpy()
             
             ID = [[i] for i in range(BS)]
@@ -88,7 +97,7 @@ class Actor(StateLSTM):
                 
         # Actor network (not suitable for more than 1 block)
         self.Actor = nn.ModuleList([nn.ModuleDict({
-            'a1': nn.Linear(3*self.embeddedDim,self.embeddedDim),
+            'a1': nn.Linear(6*self.embeddedDim,self.embeddedDim),
             'a2': nn.Linear(self.embeddedDim,16),
             'a3': nn.Linear(16,1)
         }) for i in range(1)])
@@ -127,7 +136,7 @@ class Critic6(StateLSTM):
                 
         # Critic network (not suitable for more than 1 block)
         self.Critic = nn.ModuleList([nn.ModuleDict({
-            'proj': nn.Linear(3*self.embeddedDim,self.embeddedDim),
+            'proj': nn.Linear(6*self.embeddedDim,self.embeddedDim),
             'c1': nn.Linear(self.embeddedDim,16),
             'c2': nn.Linear(16,1)
         }) for i in range(1)])

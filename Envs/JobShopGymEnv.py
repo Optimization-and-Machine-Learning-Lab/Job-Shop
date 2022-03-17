@@ -10,9 +10,10 @@ def chooseAction(jobToChoose, job_times, jobsState, \
                  machine_utilization, jobDone, jobsToProcess, placement, order):
 
     # operation index
-    jobOrder = jobsState[jobToChoose] # note: maximum = num_ops
-    # print (jobOrder)
+    jobOrder = jobsState[jobToChoose]
+
     maxSpan = smaxSpan # current truncated makespan
+    
     # if index is out of bound, job was already finished.
     if jobOrder ==  maxJobLength:  
         reward = -1  # masking invalid action would not trigger this if statement
@@ -32,7 +33,7 @@ def chooseAction(jobToChoose, job_times, jobsState, \
         if job_early_start > machine_current_utilization:
             machine_current_utilization = job_early_start + job_time
         else:
-            machine_current_utilization +=  job_time
+            machine_current_utilization += job_time
 
         job_early_start_time[jobToChoose] = machine_current_utilization   
 
@@ -115,16 +116,26 @@ class JobShopGymEnv(gym.Env):
         return state
     
     def faststep(self, jobToChoose):
-        jobsToProcess, maxSpan, reward, done, job_early_start_time, machine_utilization, jobsState, jobDone, placement = chooseAction(jobToChoose, self.state['job_times'], self.jobsState,self.maxJobLength, self.maxSpan,self.state['job_early_start_time'], self.state['precedence'],self.state['machine_utilization'], self.jobDone, self.jobsToProcess, self.placement, self.order)
+        jobsToProcess, maxSpan, reward, done, job_early_start_time, machine_utilization, jobsState, jobDone, placement = chooseAction(\
+                        jobToChoose,\
+                        self.state['job_times'], \
+                        self.jobsState, \
+                        self.maxJobLength, \
+                        self.maxSpan, \
+                        self.state['job_early_start_time'], \
+                        self.state['precedence'], \
+                        self.state['machine_utilization'], \
+                        self.jobDone, \
+                        self.jobsToProcess, \
+                        self.placement, \
+                        self.order)
         self.maxSpan = maxSpan
         self.jobsToProcess = jobsToProcess
         self.state['job_early_start_time'] = job_early_start_time
         self.state['machine_utilization'] = machine_utilization
         self.jobsState = jobsState
         self.jobDone = jobDone
-
         self.placement = placement 
-       
         
         return self.state, reward, done==1, self.info
     

@@ -36,12 +36,11 @@ class Set2Set(torch.nn.Module):
             q = q.view(batch_size, self.in_channels)
             qu = q.unsqueeze(1)
             
-            e = (x * qu )
+            e = (x * qu)
             e = e.sum(dim=2)
             
             a = F.softmax(e, 1)
             
-             
             r =  a.unsqueeze(2) * x
             r = torch.sum(r,1)
             q_star = torch.cat([q, r], dim=-1)
@@ -49,8 +48,8 @@ class Set2Set(torch.nn.Module):
         q_star = q_star.unsqueeze(1).repeat(1, job_size, 1)
         q_star = torch.cat((x, q_star),dim=2)
         
-        q_star = self.mlp(q_star)
-        q_star = self.mlp_activation(q_star)
+        # q_star = self.mlp(q_star)
+        # q_star = self.mlp_activation(q_star)
 
         return q_star
 

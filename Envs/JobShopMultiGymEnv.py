@@ -1,7 +1,5 @@
 # naive (serial) implementation of multiple environment instances
 
-import gym
-from gym import spaces
 import numpy as np
 from Envs.JobShopGymEnv import *
 
@@ -14,7 +12,6 @@ class JobShopMultiGymEnv(object):
         self.maxJobs=maxJobs
         self.maxJobLength=maxJobLength
         self.n_machines = n_machines
-        n_actions = self.maxJobs
         self.envs = []
 
         # mini-batch transition related
@@ -36,41 +33,19 @@ class JobShopMultiGymEnv(object):
     def reset(self,BSind):
         self.BState = []
         self.BSreward = []
+        self.BSmaxSpan = []
         self.BSdone = []
         self.BSinfo = []
         self.BSjobstate = []
+        self.BSmachinestate = []
         self.tracker = []
         for si in range(len(BSind)):
             _state = self.envs[BSind[si]].reset()
             self.BState.append(_state)
             self.BSjobstate.append(self.envs[BSind[si]].jobsState)
+            self.BSmachinestate.append(self.envs[BSind[si]].order)
+            self.BSmaxSpan.append(self.envs[BSind[si]].maxSpan)
         self.multidone = False
-
-
-    def step(self,BSind_update,JOBTOCHOOSE): 
-        self.BState = []
-        self.BSreward = []
-        self.BSdone = []
-        self.BSinfo = []
-        self.BSjobstate = []
-
-        for si in range(len(BSind_update)):
-            if BSind_update[si] in self.tracker:
-                state = -1
-                reward = np.nan
-                done = True
-                info = {}
-                jobstate = -1
-            else:
-                state, reward, done, info = self.envs[BSind_update[si]].step(JOBTOCHOOSE[si])
-                if done:
-                    self.tracker.append(BSind_update[si])
-
-            self.BState.append(state)
-            self.BSreward.append(reward)
-            self.BSdone.append(done)
-            self.BSinfo.append(info)
-            self.BSjobstate.append(self.envs[BSind_update[si]].jobsState)
 
     def faststep(self,BSind_update,JOBTOCHOOSE): 
         self.BState = []
@@ -78,6 +53,8 @@ class JobShopMultiGymEnv(object):
         self.BSdone = []
         self.BSinfo = []
         self.BSjobstate = []
+        self.BSmachinestate = []
+        self.BSmaxSpan = []
 
         for si in range(len(BSind_update)):
             if BSind_update[si] in self.tracker:
@@ -85,7 +62,6 @@ class JobShopMultiGymEnv(object):
                 reward = np.nan
                 done = True
                 info = {}
-                jobstate = -1
             else:
                 state, reward, done, info = self.envs[BSind_update[si]].faststep(JOBTOCHOOSE[si])
                 if done:
@@ -93,9 +69,11 @@ class JobShopMultiGymEnv(object):
 
             self.BState.append(state)
             self.BSreward.append(reward)
+            self.BSmaxSpan.append(self.envs[BSind_update[si]].maxSpan)
             self.BSdone.append(done)
             self.BSinfo.append(info)
             self.BSjobstate.append(self.envs[BSind_update[si]].jobsState)
+            self.BSmachinestate.append(self.envs[BSind_update[si]].order)
             
         if len(self.BSdone)==np.sum(self.BSdone):
             self.multidone = True
