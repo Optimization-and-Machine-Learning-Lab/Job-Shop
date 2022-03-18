@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from torch.distributions.categorical import Categorical
+from copy import deepcopy
 
 class Rollout:
     def __init__(self,venv,actor,critic,device,masking):
@@ -14,7 +15,7 @@ class Rollout:
         self.device = device
         self.masking = masking
         
-    def play(self,BS,BSind,training=True):
+    def play(self,BS,BSind,training=True,size_beam_search=-1):
         
         total_reward = 0.0
         States = []
@@ -51,7 +52,7 @@ class Rollout:
  
             # Compute action
             with torch.set_grad_enabled(training):
-                if ite==0:
+                if ite==0 or size_beam_search > 1:
                     actorJobEmb = self.actor.instance_embed(State)
                     criticJobEmb = self.critic.instance_embed(State)
 
@@ -68,6 +69,24 @@ class Rollout:
             entropy = m.entropy().cpu().detach().numpy()
             
             ID = [[i] for i in range(BS)]
+            
+            # Beam Search
+            if size_beam_search >= 1:
+                
+                BSind = [i for i in range(size_beam_search)]
+                argmax_prob = np.dstack(np.unravel_index(np.argsort(prob.ravel()), prob.shape))[0][::-1]
+                ID = []
+                action = []
+                envs = []
+
+                for k in range(size_beam_search):
+                    ID.append([argmax_prob[k, 0]])
+                    action.append([argmax_prob[k, 1]])
+                    new_env = deepcopy(self.venv.envs[argmax_prob[k, 0]])
+                    envs.append(new_env)
+
+                self.venv.envs = envs
+                
             log_prob = log_prob[ID,action]
             prob = prob[ID,action]
 
