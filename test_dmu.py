@@ -21,6 +21,7 @@ maxTime = 100
 seed = 0
 BS = 128
 masking = 1
+beam_size = 2
 
 start = time.time()
 ########################################################################
@@ -62,7 +63,7 @@ for i in range(0,1):
     critic_opt.load_state_dict(checkpoint['critic_opt_state_dict'])
 
     test_rollout = Rollout(test_venv,actor,critic,device,masking)
-    te_ite,te_total_reward,te_States,te_Log_Prob,te_Prob,te_Action,te_Value,te_reward, te_entropy = test_rollout.play(testsize,testSamples,False)
+    te_ite,te_total_reward,te_States,te_Log_Prob,te_Prob,te_Action,te_Value,te_reward, te_entropy = test_rollout.play(testsize,testSamples,False,beam_size)
 
     print(te_total_reward)
 
