@@ -116,7 +116,7 @@ class Actor(StateLSTM):
                 
         # Actor network (not suitable for more than 1 block)
         self.Actor = nn.ModuleList([nn.ModuleDict({
-            'a1': nn.Linear(6*self.embeddedDim,self.embeddedDim),
+            'a1': nn.Linear(9*self.embeddedDim,self.embeddedDim),
             'a2': nn.Linear(self.embeddedDim,16),
             'a3': nn.Linear(16,1)
         }) for i in range(1)])
@@ -155,7 +155,7 @@ class Critic6(StateLSTM):
                 
         # Critic network (not suitable for more than 1 block)
         self.Critic = nn.ModuleList([nn.ModuleDict({
-            'proj': nn.Linear(6*self.embeddedDim,self.embeddedDim),
+            'proj': nn.Linear(9*self.embeddedDim,self.embeddedDim),
             'c1': nn.Linear(self.embeddedDim,16),
             'c2': nn.Linear(16,1)
         }) for i in range(1)])
