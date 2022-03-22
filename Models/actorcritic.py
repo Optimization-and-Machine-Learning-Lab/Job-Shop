@@ -74,7 +74,7 @@ class Rollout:
             if size_beam_search >= 1:
                 
                 BSind = [i for i in range(size_beam_search)]
-                argmax_prob = np.dstack(np.unravel_index(np.argsort(prob.ravel()), prob.shape))[0][::-1]
+                argmax_prob = np.dstack(np.unravel_index(np.argsort(prob.ravel().cpu()), prob.shape))[0][::-1]
                 ID = []
                 action = []
                 envs = []

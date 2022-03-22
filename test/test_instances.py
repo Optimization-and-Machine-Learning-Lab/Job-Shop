@@ -1,44 +1,42 @@
 
 from Envs.JobShopMultiGymEnv import *
-#from main import *
 from utils import *
 from Models.actorcritic import *
 from torch import optim
-
 import time
 
-
-
-
 embeddim = 128
-#actorLR = 1e-4
-#criticLR = 1e-4
-masking = 1
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
+# Change
+instances = 'ta'            # Select: ta or dmu
+size_agnostic = True
 testsize = 1
-jobs = 30
-ops = 20
-macs = 20
-maxTime = 100
-
+jobs = 15
+macs = 15
+ops = macs 
+maxTime = 100               # maxTime: ta -> 100, for dmu -> 200
 seed = 0
-BS = 100
+BS = 128
 masking = 1
+beam_size = 2
+model_jobs = 6
+model_ops = 6
 
 start = time.time()
 ########################################################################
 
-for i in range(40,50):
+for i in range(0,10):
 
     
-    print('ta{}'.format(i+1))
-    test_precedence,test_timepre_ =read_instances('./data/ta/ta{}'.format(i+1))
+    print('{}{}'.format(instances,i+1))
+
+    if instances=='ta':
+        test_precedence,test_timepre_ = read_instances('./data/ta/ta{}'.format(i+1))
+    else:
+        test_precedence,test_timepre_ = read_instances('./data/dmu/dmu{}.txt'.format(i+1))
 
     test_timepre = test_timepre_ / maxTime
-
     test_venv = JobShopMultiGymEnv(testsize,jobs,ops,macs)
     test_venv.setGame(test_precedence,test_timepre)
     testSamples = [i for i in range(testsize)]
@@ -54,6 +52,10 @@ for i in range(40,50):
     critic_opt = optim.Adam(critic.parameters())
 
     filedir = './Results/%dx%d/'%(jobs,macs)
+
+    if size_agnostic:
+        filedir = './Results/size_agnostic/%dx%d_%d/'%(model_jobs,model_ops,maxTime)
+
     model_name = 'A2C_Seed%d_BS%d_Mask%d.tar'%(seed,BS,masking)
 
     checkpoint = torch.load(filedir+model_name, map_location=torch.device('cpu'))
@@ -62,13 +64,11 @@ for i in range(40,50):
     actor_opt.load_state_dict(checkpoint['actor_opt_state_dict'])
     critic_opt.load_state_dict(checkpoint['critic_opt_state_dict'])
 
-
-
     test_rollout = Rollout(test_venv,actor,critic,device,masking)
-    te_ite,te_total_reward,te_States,te_Log_Prob,te_Prob,te_Action,te_Value,te_reward, te_entropy = test_rollout.play(testsize,testSamples,False)
+    te_ite,te_total_reward,te_States,te_Log_Prob,te_Prob,te_Action,te_Value,te_reward, te_entropy = test_rollout.play(testsize,testSamples,False,beam_size)
 
     print(te_total_reward)
 
 end = time.time()
-print(end - start)
+#print(end - start)
 

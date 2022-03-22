@@ -47,9 +47,9 @@ Mask = [1]
 
 # Create filedir
 if size_agnostic:
-    filedir = './Results/size_agnostic/%dx%d/'%(jobs,macs)
+    filedir = './Results/size_agnostic/%dx%d_%d/'%(jobs,macs,maxTime)
 else:
-    filedir = './Results/%dx%d/'%(jobs,macs)
+    filedir = './Results/%dx%d_%d/'%(jobs,macs,maxTime)
     
 if not os.path.exists(filedir): 
     os.makedirs(filedir)
