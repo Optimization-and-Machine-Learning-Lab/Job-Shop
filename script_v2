@@ -11,6 +11,6 @@ sbatch <<EOT
 #SBATCH -p gpu -n1
 #SBATCH -q gpu-single
 hostname
-srun --unbuffered python jsp.py -j $1 -m $2 -t $3
+srun --unbuffered python train.py -j $1 -m $2 -t $3
 exit 0
 EOT

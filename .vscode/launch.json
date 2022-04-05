@@ -15,7 +15,7 @@
             "name": "train",
             "type": "python",
             "request": "launch",
-            "program": "jsp.py",
+            "program": "train.py",
             "console": "integratedTerminal",
             "args": [
                 "-j",

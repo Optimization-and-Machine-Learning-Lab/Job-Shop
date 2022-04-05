@@ -27,37 +27,20 @@ class Rollout:
         entropies = []
         
         ite = 0
-         
-        while not self.venv.multidone:
+        done = False
+        while not done:
         
-            mac_utl = np.array([i['machine_utilization'] for i in self.venv.BState])
-            job_time = np.array([i['job_times'] for i in self.venv.BState])                 # Duration matrix
-            job_early = np.array([i['job_early_start_time'] for i in self.venv.BState])
-            job_state = np.array(self.venv.BSjobstate)
-            machine_state = np.array(self.venv.BSmachinestate)
-            makespan = np.array(self.venv.BSmaxSpan)
-            pre = np.array([i['precedence'] for i in self.venv.BState])                     # Machine matrix
-
-            State = {
-                'machine_utilization': mac_utl,
-                'job_times': job_time,
-                'job_early_start_time': job_early,
-                'precedence': pre,
-                'job_state': job_state,
-                'machine_state': machine_state,
-                'makespan': makespan
-            }
-
-            States.append(State)
+            state = self.venv.bstate
+            States.append(state)
  
             # Compute action
             with torch.set_grad_enabled(training):
                 if ite==0 or size_beam_search > 1:
-                    actorJobEmb = self.actor.instance_embed(State)
-                    criticJobEmb = self.critic.instance_embed(State)
+                    actorJobEmb = self.actor.instance_embed(state)
+                    criticJobEmb = self.critic.instance_embed(state)
 
-                prob, log_prob = self.actor(State,actorJobEmb,self.masking)
-                value = self.critic(State,criticJobEmb)
+                prob, log_prob = self.actor(state,actorJobEmb,self.masking)
+                value = self.critic(state,criticJobEmb)
 
             m = Categorical(prob)
 
@@ -98,15 +81,14 @@ class Rollout:
             entropies.append(entropy)
 
             # Environment step
-            self.venv.faststep(BSind,[i[0] for i in action])
+            state, reward, done = self.venv.step(BSind,[i[0] for i in action])
 
             # Collect reward
-            tr_reward.append(self.venv.BSreward)
-            total_reward+=np.array(self.venv.BSreward)
+            tr_reward.append(reward)
+            total_reward+=np.array(reward)
 
             ite+=1
-        
-        
+    
         return ite,total_reward,States,Log_Prob,Prob,Action,Value,tr_reward, np.mean(entropies)
 
 
