@@ -1,17 +1,14 @@
-from pickle import TRUE
-from Envs.JobShopMultiGymEnv import *
-from utils import *
-from Models.actorcritic import *
-from torch import optim
-
 import time
 import numpy as np
 import torch
+from torch import optim
+from utils import *
+from Envs.JobShopMultiGymEnv import *
+from Models.actorcritic import *
 
 embeddim = 128
 actorLR = 1e-4
 criticLR = 1e-4
-masking = 1
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -24,7 +21,6 @@ size_agnostic = True
 resume_run = True
 seed = 0
 BS = 128
-masking = 1
 
 start = time.time()
 ########################################################################
@@ -45,13 +41,13 @@ filedir = './Results/%dx%d/' % (jobs, macs)
 if size_agnostic:
     filedir = './Results/size_agnostic/'
 
-model_name = 'A2C_Seed%d_BS%d_Mask%d.tar' % (seed, BS, masking)
+model_name = 'A2C_Seed%d_BS%d.tar' % (seed, BS)
 if size_agnostic:
     model_name = '6_6_100.tar'
 
 # Instanitate actor-critic
 actor = Actor(embeddim, jobs, ops, macs, device).to(device)
-critic = Critic6(embeddim, jobs, ops, macs, device).to(device)
+critic = Critic(embeddim, jobs, ops, macs, device).to(device)
 
 # Environment training
 
@@ -72,14 +68,13 @@ for epi in range(10000):
 
     test_venv.reset(testSamples)
 
-    train_rollout = Rollout(test_venv, actor, critic, device, masking)
-    ite, total_reward, States, Log_Prob, Prob, Action, Value, tr_reward, tr_entropy = train_rollout.play(BS,
-                                                                                                         testSamples)
+    train_rollout = Rollout(test_venv, actor, critic, device)
+    ite, total_reward, States, Log_Prob, Prob, Action, Value, tr_reward, tr_entropy = train_rollout.play(BS,testSamples)
     Log_Prob = torch.stack(Log_Prob)
 
-    # !!!!!!!!!!Compute Advantage: Qvalue - Value
     tr_reward.reverse()
 
+    #Compute Advantage: Qvalue - Value
     Qvalue = np.zeros((ite, BS))
     q = 0.0
     for i in range(ite):

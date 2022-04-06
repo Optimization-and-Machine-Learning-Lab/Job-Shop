@@ -1,14 +1,11 @@
 # parent class for state representation
-
+import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 torch.set_default_dtype(torch.float64)
 
-import torch.nn as nn
-from torch import optim
-import torch.nn.functional as F
-from torch.autograd import Variable
-import numpy as np
-from Models.Set2Set_test import Set2Set
+from Models.Set2Set import Set2Set
 
 class StateLSTM(nn.Module):
     def __init__(self, _embeddedDim, _jobs, _ops, _macs, device='cuda:0'):

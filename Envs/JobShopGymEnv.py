@@ -85,7 +85,7 @@ class JobShopGymEnv(gym.Env):
         if  self.jobsToProcess == 0:
             self.done = True
 
-        # Update internal variables
+        # Update vars
         self.maxSpan = maxSpan
         self.state['job_early_start_time'] = job_early_start_time
         self.state['machine_utilization'] = machine_utilization

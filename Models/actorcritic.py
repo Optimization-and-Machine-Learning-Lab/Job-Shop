@@ -1,19 +1,18 @@
-from Models.StateLSTM_test import StateLSTM
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 from torch.distributions.categorical import Categorical
+import numpy as np
 from copy import deepcopy
+from Models.StateLSTM import StateLSTM
 
 class Rollout:
-    def __init__(self,venv,actor,critic,device,masking):
+    def __init__(self,venv,actor,critic,device):
         
         self.venv = venv
         self.actor = actor
         self.critic = critic
         self.device = device
-        self.masking = masking
         
     def play(self,BS,BSind,training=True,size_beam_search=-1):
         
@@ -39,7 +38,7 @@ class Rollout:
                     actorJobEmb = self.actor.instance_embed(state)
                     criticJobEmb = self.critic.instance_embed(state)
 
-                prob, log_prob = self.actor(state,actorJobEmb,self.masking)
+                prob, log_prob = self.actor(state,actorJobEmb)
                 value = self.critic(state,criticJobEmb)
 
             m = Categorical(prob)
@@ -108,9 +107,8 @@ class Actor(StateLSTM):
         
         return JobEmbeddings
       
-    def forward(self, State, JobEmbeddings, masking):
-        # input: State - OrderedDict
-        #        masking - 0 or 1
+    def forward(self, State, JobEmbeddings):
+
         logsoft = nn.LogSoftmax(1)
         
         activation = F.leaky_relu
@@ -120,20 +118,18 @@ class Actor(StateLSTM):
         for l in self.Actor:
             LearnActor = l['a3'](activation(l['a2'](activation(l['a1'](stateEmbeded))))).squeeze(2)
             
-        # option: do masking 
-        # https://arxiv.org/abs/2006.14171 this paper directly set masked action to be a large negative number, say -1e+8
-        if masking==1:
-            invalid_action = (State['job_state']==self.ops)*1.0  # BS, num_jobs  
-            LearnActor -= torch.tensor(invalid_action*1e+30,dtype=torch.float64,device=self.device)
+        # Masking
+        invalid_action = (State['job_state']==self.ops)*1.0  # BS, num_jobs  
+        LearnActor -= torch.tensor(invalid_action*1e+30,dtype=torch.float64,device=self.device)
             
         prob = F.softmax(LearnActor,dim=1) # BS, num_jobs
         log_prob = logsoft(LearnActor)    
         return prob, log_prob
 
 
-class Critic6(StateLSTM):
+class Critic(StateLSTM):
     def __init__(self, _embeddedDim, _jobs, _ops, _macs, device='cuda:0'):
-        super(Critic6, self).__init__(_embeddedDim, _jobs, _ops, _macs, device)
+        super(Critic, self).__init__(_embeddedDim, _jobs, _ops, _macs, device)
                 
         # Critic network (not suitable for more than 1 block)
         self.Critic = nn.ModuleList([nn.ModuleDict({
@@ -151,7 +147,6 @@ class Critic6(StateLSTM):
         return JobEmbeddings
       
     def forward(self, State, JobEmbeddings):
-        # input: State - OrderedDict
         
         activation = F.leaky_relu
         

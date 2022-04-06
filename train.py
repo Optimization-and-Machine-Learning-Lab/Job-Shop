@@ -6,7 +6,7 @@ import torch
 from torch import optim
 
 from Envs.JobShopMultiGymEnv import *
-from Models.StateLSTM_test import *
+from Models.StateLSTM import *
 from Models.actorcritic import *
 from config import *
 from utils import *
@@ -34,7 +34,6 @@ testSample = [i for i in range(testsize)]
 embeddim = 128
 actorLR = 1e-4
 criticLR = 1e-4
-masking = 1
 Episode = 45000 # total number of episodes
 
 # Training 
@@ -42,8 +41,6 @@ size_agnostic=True
 resume_run=False
 Seed = [0]
 Batch = [128]
-Mask = [1]
-
 
 # Create filedir
 if size_agnostic:
@@ -56,19 +53,19 @@ if not os.path.exists(filedir):
 
 
 # Learning loop...
-for seed,BS,masking in itertools.product(Seed,Batch,Mask):
+for seed,BS in itertools.product(Seed,Batch):
     
-    print ('Seed: %d, Batch-Size: %d, Invalid-action-masking: %d' %(seed,BS,masking))
+    print ('Seed: %d, Batch-Size: %d' %(seed,BS))
 
     # Set seed
     set_all_seeds(seed)
 
     # Set model name
-    model_name = 'A2C_Seed%d_BS%d_Mask%d.tar'%(seed,BS,masking)
-        
+    model_name = 'A2C_Seed%d_BS%d.tar'%(seed,BS)
+    
     # Instanitate actor-critic
     actor = Actor(embeddim,jobs,ops,macs,device).to(device)
-    critic = Critic6(embeddim,jobs,ops,macs,device).to(device)
+    critic = Critic(embeddim,jobs,ops,macs,device).to(device)
     actor_opt = optim.Adam(actor.parameters(), lr=actorLR)
     critic_opt = optim.Adam(critic.parameters(), lr=criticLR)
     
@@ -89,7 +86,7 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
     test_venv.reset(testSamples)
 
     # Instantiate rollouts
-    test_rollout = Rollout(test_venv,actor,critic,device,masking)
+    test_rollout = Rollout(test_venv,actor,critic,device)
 
     # Environment training
     train_venv = JobShopMultiGymEnv(BS,jobs,ops,macs)
@@ -100,10 +97,6 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
     epi_end = Episode+1
     
     for epi in range(epi_start,epi_end):
-        
-        States = []
-        Advantage = []
-        total_reward = np.zeros(BS)
         
         # Tic...
         if epi%100==1 or epi==0:
@@ -119,7 +112,7 @@ for seed,BS,masking in itertools.product(Seed,Batch,Mask):
         train_venv.reset(trainSample)   
 
         # Rollout
-        train_rollout = Rollout(train_venv,actor,critic,device,masking)
+        train_rollout = Rollout(train_venv,actor,critic,device)
         ite,total_reward,States,Log_Prob,Prob,Action,Value,tr_reward, tr_entropy = train_rollout.play(BS,trainSample)
         tr_numstep+=ite
 
