@@ -87,20 +87,20 @@ class StateLSTM(nn.Module):
         #
         # Hand-crafted features for operations
         #
-        precedence = torch.tensor(State['precedence'], device=self.device)
-        job_times = torch.tensor(State['job_times'], device=self.device)
-        job_state = torch.tensor(State['job_state'], device=self.device)
+        # precedence = torch.tensor(State['precedence'], device=self.device)
+        # job_times = torch.tensor(State['job_times'], device=self.device)
+        # job_state = torch.tensor(State['job_state'], device=self.device)
 
-        job_times_extra = torch.zeros(BS,self.jobs,1,dtype=torch.float64,device=self.device)
-        job_times = torch.cat((job_times,job_times_extra),dim=2) 
+        # job_times_extra = torch.zeros(BS,self.jobs,1,dtype=torch.float64,device=self.device)
+        # job_times = torch.cat((job_times,job_times_extra),dim=2) 
 
 
-        job_processing_time = torch.gather(job_times, 2, job_state.unsqueeze(2))                                    # Processing time of next operation [BS, jobs, 1]
+        # job_processing_time = torch.gather(job_times, 2, job_state.unsqueeze(2))                                    # Processing time of next operation [BS, jobs, 1]
         job_start_time      = torch.tensor(State['job_early_start_time'], dtype=torch.float64,  device=self.device).unsqueeze(2)          # Time for the next operation to start [BS, jobs, 1]
-        job_end_time        = job_start_time + job_processing_time                                                  # Time for the next operation to finish [BS, jobs, 1]
-        total_work_remaining= torch.flip(torch.cumsum(torch.flip(job_times, dims=[2]), dim=2), dims=[2])            
-        total_work_remaining= torch.gather(total_work_remaining, 2, job_state.unsqueeze(2))                         # Cumulative time remaining per job [BS, jobs, 1]
-        number_pending_ops  = torch.tensor(self.ops-State['job_state'], device=self.device).unsqueeze(2)            # Number of pending operations per job [BS, jobs, 1]
+        # job_end_time        = job_start_time + job_processing_time                                                  # Time for the next operation to finish [BS, jobs, 1]
+        # total_work_remaining= torch.flip(torch.cumsum(torch.flip(job_times, dims=[2]), dim=2), dims=[2])            
+        # total_work_remaining= torch.gather(total_work_remaining, 2, job_state.unsqueeze(2))                         # Cumulative time remaining per job [BS, jobs, 1]
+        # number_pending_ops  = torch.tensor(self.ops-State['job_state'], device=self.device).unsqueeze(2)            # Number of pending operations per job [BS, jobs, 1]
 
 
         # editing precedence
@@ -108,33 +108,33 @@ class StateLSTM(nn.Module):
         MacID = MacID[BSID,JobID,State['job_state']]
         
 
-        machine_state = torch.tensor(State['machine_state'],dtype=torch.float64,device=self.device).unsqueeze(2)
-        # add extra machine for when job is finished
-        machine_state_extra = torch.zeros(BS,1,1,dtype=torch.float64,device=self.device)
-        machine_state = torch.cat((machine_state,machine_state_extra),dim=1) #BS, mac+1, 1 
+        # machine_state = torch.tensor(State['machine_state'],dtype=torch.float64,device=self.device).unsqueeze(2)
+        # # add extra machine for when job is finished
+        # machine_state_extra = torch.zeros(BS,1,1,dtype=torch.float64,device=self.device)
+        # machine_state = torch.cat((machine_state,machine_state_extra),dim=1) #BS, mac+1, 1 
 
         #
         # Hand-crafted features for machines
         #
         Machine_utilization = Machine_utilization[BSID,MacID,:]                                                    # Machine accumulate utilization (associated to each job) [BS, jobs, 1]
-        ordered_times = torch.zeros_like(job_times).scatter_(dim=2, index=precedence, src=job_times)
-        total_work_machine = torch.sum(ordered_times, dim=1).unsqueeze(2)
-        total_remaining_machine = total_work_machine[BSID,MacID,:]
-        total_remaining_machine = total_remaining_machine - Machine_utilization                                    # Work remaining per machine (associated to each job)  [BS, jobs, 1]
-        number_pending_ops_machine = (self.ops - machine_state)[BSID,MacID,:]                                      # Number of pernding operations per machine (associated to each job) [BS, jobs, 1]
-        current_makespan = torch.tensor(State['makespan'],dtype=torch.float64,\
-                            device=self.device).unsqueeze(1).repeat(1,self.jobs).unsqueeze(2)                      # Current makespan per job [BS, jobs, 1]
+        # ordered_times = torch.zeros_like(job_times).scatter_(dim=2, index=precedence, src=job_times)
+        # total_work_machine = torch.sum(ordered_times, dim=1).unsqueeze(2)
+        # total_remaining_machine = total_work_machine[BSID,MacID,:]
+        # total_remaining_machine = total_remaining_machine - Machine_utilization                                    # Work remaining per machine (associated to each job)  [BS, jobs, 1]
+        # number_pending_ops_machine = (self.ops - machine_state)[BSID,MacID,:]                                      # Number of pernding operations per machine (associated to each job) [BS, jobs, 1]
+        # current_makespan = torch.tensor(State['makespan'],dtype=torch.float64,\
+        #                     device=self.device).unsqueeze(1).repeat(1,self.jobs).unsqueeze(2)                      # Current makespan per job [BS, jobs, 1]
 
         # embedding 
-        dynamic_feats = torch.cat((job_processing_time,job_start_time,job_end_time,total_work_remaining, Machine_utilization,total_remaining_machine, current_makespan), dim=2)
-        dynamic_featsEmb = self.dynEmbedding(dynamic_feats)
+        #dynamic_feats = torch.cat((job_processing_time,job_start_time,job_end_time,total_work_remaining, Machine_utilization,total_remaining_machine, current_makespan), dim=2)
+        #dynamic_featsEmb = self.dynEmbedding(dynamic_feats)
 
         # embedding 
-        #job_start_time = self.jobStartTimeEmbed(job_start_time) # BS, num_jobs, emded_dim
-        #Machine_utilization = self.machineTimeEmbed(Machine_utilization) # BS, num_mac+1, emded_dim
+        job_start_time = self.jobStartTimeEmbed(job_start_time) # BS, num_jobs, emded_dim
+        Machine_utilization = self.machineTimeEmbed(Machine_utilization) # BS, num_mac+1, emded_dim
          
-        #stateEmbeded = torch.cat((JobEmbeddings,Machine_utilization,job_start_time),dim=2)
-        stateEmbeded = torch.cat((JobEmbeddings, dynamic_featsEmb),dim=2)
+        stateEmbeded = torch.cat((JobEmbeddings,Machine_utilization,job_start_time),dim=2)
+        #stateEmbeded = torch.cat((JobEmbeddings, dynamic_featsEmb),dim=2)
 
         # Set2set model between jobs
         stateEmbeded = self.interJobEmbedding(stateEmbeded)
