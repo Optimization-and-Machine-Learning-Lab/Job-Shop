@@ -1,0 +1,16 @@
+#!/bin/bash
+sbatch <<EOT
+#!/bin/bash
+#SBATCH --output=errors.txt
+#SBATCH --job-name=2
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task 4
+#SBATCH --mem-per-cpu=16000
+#SBATCH --gres=gpu:1
+#SBATCH -p gpu -n1
+#SBATCH -q gpu-single
+hostname
+srun --unbuffered python main_test.py
+exit 0
+EOT
