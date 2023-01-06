@@ -66,7 +66,7 @@ class StateLSTM(nn.Module):
         # embedding precedence 
         # Precedences = self.machinesEmbedding.weight[[Precedences]] 
         Precedences_float = Precedences.unsqueeze(3).to(dtype=torch.float64)
-        Precedences = self.machinesEmbedding(Precedences_float) # Zangir size agnostic
+        Precedences = self.machinesEmbedding(Precedences_float) # size agnostic
         # concat embeded precedence and job time - input has to be a 3D tensor: batch, seq, feature
         PrecedenceTime =torch.cat((Precedences,Job_times),dim=3)
         PrecedenceTime = PrecedenceTime.reshape(BS*self.jobs,self.ops+1,-1) 
