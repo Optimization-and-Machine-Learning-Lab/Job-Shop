@@ -1,7 +1,7 @@
 # Learning to generalize Dispatching rules on the Job Shop Scheduling
 
-This is an implementation of Learning to generalize Dispatching rules on the Job
-Shop Scheduling paper. The model generates generates solutions for JSP task using Adversarial Curriculum Learning strategy for training. All dependencies are mentioned in the requirements.txt.
+This is an implementation of On the study of Curriculum Learning for inferring
+dispatching policies on the Job Shop Scheduling. The model generates generates solutions for JSP task using Reinforced Adaptive Staircase Curriculum Learning (RASCL) strategy for training. All dependencies are mentioned in the requirements.txt.
 
 
 ## Commands to prepare the project
